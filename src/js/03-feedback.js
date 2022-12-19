@@ -1,36 +1,59 @@
-import { throttle } from 'lodash';
+import throttle from 'lodash.throttle';
 
-const form = document.querySelector('.feedback-form');
-const email = document.querySelector('input[name="email"]');
-const message = document.querySelector('textarea[name="message"]');
-const LOCALSTORAGE_KEY = 'feedback-form-state';
+const refs = {
+  formEl: document.querySelector('.feedback-form'),
+  inputEl: document.querySelector('input[name="email"]'),
+  textareaEl: document.querySelector('textarea[name="message"]'),
+};
 
-form.addEventListener(
-  'input',
-  throttle(e => {
-    const objectToSave = { email: email.value, message: message.value };
-    localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(objectToSave));
-  }, 500)
-);
+refs.formEl.addEventListener('submit', onFormSubmit);
+refs.formEl.addEventListener('input', throttle(onFormData, 500));
 
-form.addEventListener('submit', e => {
+onSaveData();
+
+
+let entryData = JSON.parse(localStorage.getItem('feedback-form-state')) || {};
+
+function onFormData(e) {
+  const { name: key, value } = e.target;
+  entryData[key] = value;
+
+  localStorage.setItem('feedback-form-state', JSON.stringify(entryData)); 
+}
+
+function onFormSubmit(e) {
   e.preventDefault();
-  console.log({ email: email.value, message: message.value });
-  form.reset();
-  localStorage.removeItem(LOCALSTORAGE_KEY);
-});
 
-const load = key => {
+  const getlocalStorage = localStorage.getItem('feedback-form-state');
+
   try {
-    const serializedState = localStorage.getItem(key);
-    return serializedState === null ? undefined : JSON.parse(serializedState);
+    JSON.parse(getlocalStorage);
   } catch (error) {
     console.error('Get state error: ', error.message);
   }
-};
 
-const storageData = load(LOCALSTORAGE_KEY);
-if (storageData) {
-  email.value = storageData.email;
-  message.value = storageData.message;
+  if (!refs.inputEl.value) {
+    alert('Введіть email');
+    return;
+  } else if (!refs.textareaEl.value) {
+    alert('Введіть текст');
+    return;
+  } else e.currentTarget.reset(); 
+  if (getlocalStorage) {
+    console.log('Введені дані: ', JSON.parse(getlocalStorage)); 
+  }
+
+  localStorage.removeItem('feedback-form-state'); 
+  entryData = {}; 
+}
+
+function onSaveData() {
+  const getlocalStorage = JSON.parse(
+    localStorage.getItem('feedback-form-state')
+  );
+
+  if (getlocalStorage) {
+    refs.inputEl.value = getlocalStorage.email || '';
+    refs.textareaEl.value = getlocalStorage.message || '';
+  }
 }
